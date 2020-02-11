@@ -1,7 +1,28 @@
 <html>
     <head></head>
     <body>
-        <h1>Tuck Wallet</h1>
+        <div id="accountInfo" style="float:left;display:none;">
+            <span>Your Address: <span id="address"></span></span><br><br>
+            <span>Your Balance: <span id="balance"></span></span>
+        </div>
+        
+        <div id="chainInfo" style="float:right;display:none;">
+            <span>Total Supply: <span id="totalSupply"></span></span>
+        </div>
+
+        <span style="margin-left:auto;margin-right:auto;text-align:center;"><h1>Tuck Wallet</h1></span>
+        
+        <div id="initialHeader" style="margin-left:auto;margin-right:auto;text-align:center;max-width:1500px;">
+            Enter Mnemonic: <input id="mnemonic" style="width:100%"><br><br>
+            <button onclick="tuckwallet.loadAccount()">Load Account</button>
+        </div>            
+
+        <div id="header" style="margin-left:auto;margin-right:auto;text-align:left;max-width:500px;display:none;">
+            <button onclick="tuckwallet.startSendTuckeratoms()">Send Tuckeratoms</button>
+            <button onclick="tuckwallet.startDelegateTuckeratoms()">Delegate Tuckeratoms</button>
+            <button onclick="tuckwallet.startWithdrawRewards()">Withdraw Staking Rewards</button>
+        </div>            
+        
         <script src="dist/bundle.js"></script>
     </body>
 </html>
