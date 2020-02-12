@@ -67,8 +67,7 @@ function setSupply() {
 function showMainHeader() {
   window.document.getElementById('initialHeader').style.display = 'none';
   window.document.getElementById('header').style.display = '';
-  window.document.getElementById('accountInfo').style.display = '';
-  window.document.getElementById('chainInfo').style.display = '';
+  window.document.getElementById('infoHolder').style.display = '';
 }
 
 function loadAccount() {
