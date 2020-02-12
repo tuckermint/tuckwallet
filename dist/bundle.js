@@ -19,7 +19,7 @@ async function fetchFromServer(path) {
 }
 
 function setAccount() {
-  window.document.getElementById('address').value = window.wallet.address;
+  window.document.getElementById('address').textContent = window.wallet.address;
 }
 
 async function setBalance() {
@@ -29,7 +29,7 @@ async function setBalance() {
     for (const res of result) {
       if (res['denom'] === denom) {
         const amount = res['amount'];
-        window.document.getElementById('balance').value = `${amount} ${denom}`;
+        window.document.getElementById('balance').textContent = `${amount} ${denom}`;
         break;
       }
     }
@@ -43,7 +43,7 @@ async function setBalance() {
 function setSupply() {
   fetchFromServer(`/supply/total/${denom}`).then(data => {
     const supply = data['result'];
-    window.document.getElementById('totalSupply').value = `${supply} ${denom}`;
+    window.document.getElementById('totalSupply').textContent = `${supply} ${denom}`;
   }).catch(error => {
     console.log("Error getting supply");
   });
