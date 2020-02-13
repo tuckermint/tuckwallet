@@ -1,1 +1,1 @@
-Wallet for Tuckermint
+Basic Wallet for Tuckermint
