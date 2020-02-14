@@ -17,14 +17,24 @@ const chainId = 'cosmoshub-3';
 const oneMillion = 1000000.0; // -- utilities --
 
 async function fetchFromServer(path) {
-  let response = await fetch(`${serverAddress}${path}`);
-  let data = await response.json();
+  const response = await fetch(`${serverAddress}${path}`);
+  const data = await response.json();
+  console.log(data);
+  return data;
+}
+
+async function postToServer(path, payload) {
+  const response = await fetch(`${serverAddress}${path}`, {
+    method: 'post',
+    body: JSON.stringify(payload)
+  });
+  const data = await response.json();
   console.log(data);
   return data;
 }
 
 async function getSignMeta() {
-  let data = await fetchFromServer(`/auth/accounts/${window.wallet.address}`);
+  const data = await fetchFromServer(`/auth/accounts/${window.wallet.address}`);
   return {
     account_number: data['result']['value']['account_number'],
     chain_id: chainId,
@@ -160,41 +170,64 @@ async function finishSendTuckeratoms() {
     alert("Gas can't be less than zero!");
     return;
   }
+  /*const tx = {
+      fee:  {
+          amount: [{ amount: String(feeInMicroTuckeratoms), denom: denom }],
+          gas:    String(gas)
+      },
+      memo: 'TuckWallet',
+      msgs: [{
+          type:  'cosmos-sdk/Send',
+          value: {
+              inputs:  [{
+                  address: window.wallet.address,
+                  coins:   [{ amount: String(microTuckeratomsToSend), denom: denom }]
+              }],
+              outputs: [{
+                  address: receivingAddress,
+                  coins:   [{  amount: String(microTuckeratomsToSend), denom: denom }]
+              }]
+          }
+      }]
+  };*/
 
-  const tx = {
-    fee: {
-      amount: [{
-        amount: String(feeInMicroTuckeratoms),
-        denom: denom
-      }],
-      gas: String(gas)
-    },
-    memo: 'TuckWallet',
-    msgs: [{
-      type: 'cosmos-sdk/Send',
-      value: {
-        inputs: [{
-          address: window.wallet.address,
-          coins: [{
-            amount: String(microTuckeratomsToSend),
-            denom: denom
-          }]
-        }],
-        outputs: [{
-          address: receivingAddress,
-          coins: [{
-            amount: String(microTuckeratomsToSend),
-            denom: denom
-          }]
-        }]
-      }
-    }]
-  };
+
   getSignMeta().then(signMeta => {
+    const tx = {
+      msg: [{
+        type: 'cosmos-sdk/MsgSend',
+        value: {
+          amount: [{
+            amount: String(microTuckeratomsToSend),
+            denom: denom
+          }],
+          from_address: window.wallet.address,
+          to_address: receivingAddress
+        }
+      }],
+      fee: {
+        amount: [{
+          denom: denom,
+          amount: String(feeInMicroTuckeratoms)
+        }],
+        gas: String(gas)
+      },
+      memo: 'TuckWallet' //chain_id: chainId,
+      //account_number: signMeta.account_number,
+      //sequence: signMeta.sequence
+
+    };
     const stdTx = (0, _sig.signTx)(tx, signMeta, window.wallet);
     console.log('signTx\n\n', JSON.stringify(stdTx, null, 2), '\n');
     const valid = (0, _sig.verifyTx)(stdTx, signMeta);
     console.log('verifyTx\n\n', JSON.stringify(valid, null, 2), '\n');
+    const broadcastTx = (0, _sig.createBroadcastTx)(stdTx, _sig.BROADCAST_MODE_BLOCK);
+    console.log('broadcastTx\n\n', JSON.stringify(broadcastTx, null, 2), '\n');
+    postToServer("/txs", broadcastTx).then(responseData => {
+      alert("call did not crash");
+    }).catch(error => {
+      alert(`call failed: ${error}`);
+    });
   });
 }
 
