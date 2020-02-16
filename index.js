@@ -67,9 +67,7 @@ function storeBalances(result){
 }
 
 async function setBalance(){
-    //fetchFromServer(`/bank/balances/${window.wallet.address}`).then(data => {               
-    // use cosmos12w6tynmjzq4l8zdla3v4x0jt8lt4rcz5dz2hye as a test address
-    fetchFromServer(`/bank/balances/cosmos12w6tynmjzq4l8zdla3v4x0jt8lt4rcz5dz2hye`).then(data => {   
+    fetchFromServer(`/bank/balances/${window.wallet.address}`).then(data => {               
         const result = data['result'];
         
         storeBalances(result);
