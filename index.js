@@ -342,24 +342,49 @@ export async function finishDelegateTuckeratoms(){
         return;
     }
     
-    const tx = {
-        msg: [{                
-            type: "cosmos-sdk/MsgDelegate",
-            value: {
-                amount: {
-                    amount: String(amountToDelegateInMicroTuckeratoms),
-                    denom: denom
-                },
-                delegator_address: window.wallet.address,
-                validator_address: validatorAddress
-            }                
-        }],
-        fee: {
-            amount: [ { amount: String(feeInMicroTuckeratoms), denom: denom } ], 
-            gas: String(gas) 
-        },
-        memo: "TuckWallet",
-    }    
+    let tx;
+    
+    if (tuckeratomSource === 'undelegated'){    
+        tx = {
+            msg: [{                
+                type: "cosmos-sdk/MsgDelegate",
+                value: {
+                    amount: {
+                        amount: String(amountToDelegateInMicroTuckeratoms),
+                        denom: denom
+                    },
+                    delegator_address: window.wallet.address,
+                    validator_address: validatorAddress
+                }                
+            }],
+            fee: {
+                amount: [ { amount: String(feeInMicroTuckeratoms), denom: denom } ], 
+                gas: String(gas) 
+            },
+            memo: "TuckWallet",
+        }    
+    }
+    else{
+        tx = {
+            msg: [{                
+                type: "cosmos-sdk/MsgBeginRedelegate",
+                value: {
+                    amount: {
+                        amount: String(amountToDelegateInMicroTuckeratoms),
+                        denom: denom
+                    },
+                    delegator_address: window.wallet.address,
+                    validator_dst_address: validatorAddress,
+                    validator_src_address: tuckeratomSource
+                }                
+            }],
+            fee: { 
+                amount: [ { amount: String(feeInMicroTuckeratoms), denom: denom } ], 
+                gas: String(gas) 
+            },
+            memo: "TuckWallet",
+        }
+    }
     
     submitTransaction(tx);
 }
