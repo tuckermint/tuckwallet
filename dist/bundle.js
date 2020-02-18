@@ -10,6 +10,11 @@ exports.finishSendTuckeratoms = finishSendTuckeratoms;
 exports.updateMaxDelegationAmount = updateMaxDelegationAmount;
 exports.startDelegateTuckeratoms = startDelegateTuckeratoms;
 exports.finishDelegateTuckeratoms = finishDelegateTuckeratoms;
+exports.startWithdrawRewards = startWithdrawRewards;
+exports.finishWithdrawRewards = finishWithdrawRewards;
+exports.updateAmountToUnstake = updateAmountToUnstake;
+exports.startUnstakeTuckeratoms = startUnstakeTuckeratoms;
+exports.finishUnstakeTuckeratoms = finishUnstakeTuckeratoms;
 
 var _sig = require("@tendermint/sig");
 
@@ -46,7 +51,12 @@ async function getSignMeta() {
   };
 }
 
+function startWaitingScreen() {
+  const html = "";
+}
+
 async function submitTransaction(tx) {
+  const mainContent = document.getElementById('mainContent').innerHTML;
   getSignMeta().then(signMeta => {
     const stdTx = (0, _sig.signTx)(tx, signMeta, window.wallet);
     console.log('signTx\n\n', JSON.stringify(stdTx, null, 2), '\n');
@@ -146,7 +156,7 @@ function startSendTuckeratoms() {
         Fee (in Tuckeratoms): <input id="fee" type="number" style="width:100%;margin-bottom:20px;" min="0" step=".000001" value=".005">
         Gas: <input id="gas" type="number" style="width:100%;margin-bottom:20px;" min="0" step="1" value="50000">
         
-        <button onclick="tuckwallet.finishSendTuckeratoms()">Send</button>
+        <button onclick="tuckwallet.finishSendTuckeratoms()">Send Tuckeratoms</button>
     `;
   document.getElementById('mainContent').innerHTML = html;
 }
@@ -250,16 +260,32 @@ async function getValidators() {
   return [options, validatorAddressToNameMap];
 }
 
-async function getDelegations(validatorAddressToNameMap) {
+async function getDelegationArray() {
   const response = await fetchFromServer(`/staking/delegators/${window.wallet.address}/delegations`);
   const delegations = response['result'].sort((a, b) => a['shares'] > b['shares'] ? 1 : -1);
-  let options = '';
+  const delegationArray = [];
 
   for (const delegation of delegations) {
     const address = delegation['validator_address'];
-    const name = validatorAddressToNameMap[address];
     const microTuckeratomBalance = delegation['balance'];
     const tuckeratomBalance = microTuckeratomBalance / oneMillion;
+    delegationArray.push({
+      'validator_address': address,
+      'balance': tuckeratomBalance
+    });
+  }
+
+  return delegationArray;
+}
+
+async function getDelegations(validatorAddressToNameMap) {
+  const delegationArray = await getDelegationArray();
+  let options = '';
+
+  for (const delegation of delegationArray) {
+    const address = delegation['validator_address'];
+    const name = validatorAddressToNameMap[address];
+    const tuckeratomBalance = delegation['balance'];
     options += `<option value='${address}'>${name}: ${tuckeratomBalance} Tuckeratoms delegated</option>`;
   }
 
@@ -288,13 +314,13 @@ async function startDelegateTuckeratoms() {
   const html = `
         <h2>Delegate / Redelegate Tuckeratoms</h2>
         
-        Validator: <select id="validator" style="margin-bottom:20px;">${validators}</select>
+        Validator: <select id="validator" style="margin-bottom:20px;width:100%;">${validators}</select>
         Source of Tuckeratoms:  <select onchange="tuckwallet.updateMaxDelegationAmount()" id="source" style="width:100%;margin-bottom:20px;"><option value="undelegated">Undelegated Tuckeratoms</option>${delegations}</select>
         Amount to Delegate (in Tuckeratoms): <input id="amountToDelegate" type="number" style="width:100%;margin-bottom:20px;" min=".000001" max="${currentBalanceInTuckeratoms}" step=".000001">
         Fee (in Tuckeratoms): <input id="fee" type="number" style="width:100%;margin-bottom:20px;" min="0" step=".000001" value=".005">
         Gas: <input id="gas" type="number" style="width:100%;margin-bottom:20px;" min="0" step="1" value="50000">
         
-        <button onclick="tuckwallet.finishDelegateTuckeratoms()">Delegate</button>
+        <button onclick="tuckwallet.finishDelegateTuckeratoms()">Delegate Tuckeratoms</button>
     `;
   document.getElementById('mainContent').innerHTML = html;
 }
@@ -374,6 +400,188 @@ async function finishDelegateTuckeratoms() {
     };
   }
 
+  submitTransaction(tx);
+} // withdraw rewards
+
+
+async function getPendingRewards(validatorAddressToNameMap) {
+  const response = await fetchFromServer(`/distribution/delegators/${window.wallet.address}/rewards`);
+  const rewards = response['result']['rewards'];
+  let pendingRewards = '';
+  window.currentValidators = [];
+
+  for (const reward of rewards) {
+    const address = reward['validator_address'];
+    const name = validatorAddressToNameMap[address];
+    let microTuckeratomBalance;
+
+    for (const rewardMap of reward['reward']) {
+      const rewardDenom = rewardMap['denom'];
+
+      if (rewardDenom === denom) {
+        microTuckeratomBalance = rewardMap['amount'];
+        break;
+      }
+    }
+
+    if (!microTuckeratomBalance) {
+      continue;
+    }
+
+    const tuckeratomBalance = microTuckeratomBalance / oneMillion;
+    pendingRewards += `${name}: ${tuckeratomBalance} Tuckeratoms<br>`;
+    window.currentValidators.push(address);
+  }
+
+  const totals = response['result']['total'];
+  let totalRewards;
+
+  for (const total of totals) {
+    const rewardDenom = total['denom'];
+
+    if (rewardDenom === denom) {
+      totalRewards = total['amount'] / oneMillion;
+      break;
+    }
+  }
+
+  return [pendingRewards, totalRewards];
+}
+
+async function startWithdrawRewards() {
+  const [_, validatorAddressToNameMap] = await getValidators();
+  const [pendingRewards, totalRewards] = await getPendingRewards(validatorAddressToNameMap);
+  const html = `
+        <h2>Withdraw Staking Rewards</h2>
+        
+        <h3>Pending Rewards<br>(Totaling ${totalRewards} Tuckeratoms):</h3>
+        ${pendingRewards}<br>
+        
+        Fee (in Tuckeratoms): <input id="fee" type="number" style="width:100%;margin-bottom:20px;" min="0" step=".000001" value=".005">
+        Gas: <input id="gas" type="number" style="width:100%;margin-bottom:20px;" min="0" step="1" value="50000">
+        
+        <button onclick="tuckwallet.finishWithdrawRewards()">Withdraw All Rewards</button>
+    `;
+  document.getElementById('mainContent').innerHTML = html;
+}
+
+async function finishWithdrawRewards() {
+  const feeInTuckeratoms = Number(document.getElementById('fee').value);
+
+  if (feeInTuckeratoms < 0) {
+    alert("Fee can't be less than zero!");
+    return;
+  }
+
+  const feeInMicroTuckeratoms = feeInTuckeratoms * oneMillion;
+  const gas = Number(document.getElementById('gas').value);
+
+  if (gas < 0) {
+    alert("Gas can't be less than zero!");
+    return;
+  }
+
+  const msgs = [];
+
+  for (const validator of window.currentValidators) {
+    msgs.push({
+      type: "cosmos-sdk/MsgWithdrawDelegationReward",
+      value: {
+        delegator_address: window.wallet.address,
+        validator_address: validator
+      }
+    });
+  }
+
+  const tx = {
+    msg: msgs,
+    fee: {
+      amount: [{
+        amount: String(feeInMicroTuckeratoms),
+        denom: denom
+      }],
+      gas: String(gas)
+    },
+    memo: "TuckWallet"
+  };
+  submitTransaction(tx);
+} //unstake
+
+
+function updateAmountToUnstake() {
+  const validator = window.document.getElementById('validator');
+  const text = validator.options[validator.selectedIndex].text;
+  const amount = window.document.getElementById('amountToUnstake');
+  amount.max = Number(text.split(': ')[1].split(' ')[0]);
+}
+
+async function startUnstakeTuckeratoms() {
+  const [_, validatorAddressToNameMap] = await getValidators();
+  const delegationArray = await getDelegationArray();
+  let options = '';
+
+  for (const delegation of delegationArray) {
+    const address = delegation['validator_address'];
+    const name = validatorAddressToNameMap[address];
+    const tuckeratomBalance = delegation['balance'];
+    options += `<option value="${address}">${name} : ${tuckeratomBalance} Tuckeratoms Delegated</option>`;
+  }
+
+  const html = `
+        <h2>Unstake Tuckeratoms</h2>
+        <h3>This will take 21 days!</h3>
+        
+        Validator: <select onchange="tuckwallet.updateAmountToUnstake()" id="validator" style="width:100%;margin-bottom:20px;">${options}</select>        
+        Amount to Unstake (in Tuckeratoms): <input id="amountToUnstake" type="number" style="width:100%;margin-bottom:20px;" min=".000001" step=".000001">        
+        Fee (in Tuckeratoms): <input id="fee" type="number" style="width:100%;margin-bottom:20px;" min="0" step=".000001" value=".005">
+        Gas: <input id="gas" type="number" style="width:100%;margin-bottom:20px;" min="0" step="1" value="50000">
+        
+        <button onclick="tuckwallet.finishUnstakeTuckeratoms()">Unstake Tuckeratoms</button>
+    `;
+  document.getElementById('mainContent').innerHTML = html;
+  updateAmountToUnstake();
+}
+
+async function finishUnstakeTuckeratoms() {
+  const validator = document.getElementById('validator').value;
+  const amountToUnstakeInTuckeratoms = Number(document.getElementById('amountToUnstake').value);
+  const amountToUnstakeInMicroTuckeratoms = amountToUnstakeInTuckeratoms * oneMillion;
+  const feeInTuckeratoms = Number(document.getElementById('fee').value);
+
+  if (feeInTuckeratoms < 0) {
+    alert("Fee can't be less than zero!");
+    return;
+  }
+
+  const feeInMicroTuckeratoms = feeInTuckeratoms * oneMillion;
+  const gas = Number(document.getElementById('gas').value);
+
+  if (gas < 0) {
+    alert("Gas can't be less than zero!");
+    return;
+  }
+
+  const tx = {
+    msg: [{
+      type: "cosmos-sdk/MsgUndelegate",
+      value: {
+        amount: {
+          amount: String(amountToUnstakeInMicroTuckeratoms),
+          denom: denom
+        },
+        delegator_address: window.wallet.address,
+        validator_address: validator
+      }
+    }],
+    fee: {
+      amount: [{
+        amount: String(feeInMicroTuckeratoms),
+        denom: denom
+      }],
+      gas: String(gas)
+    },
+    memo: "TuckWallet"
+  };
   submitTransaction(tx);
 }
 
