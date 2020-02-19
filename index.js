@@ -38,29 +38,38 @@ async function getSignMeta(){
     }
 }
 
-function startWaitingScreen(){
-    const html = "";
-}
-
 async function submitTransaction(tx){
-    const mainContent = document.getElementById('mainContent').innerHTML;
+    const waitingHtml = `<div class="lds-spinner"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>`;
     
-    getSignMeta().then(signMeta => {        
-        const stdTx = signTx(tx, signMeta, window.wallet);
-        console.log('signTx\n\n', JSON.stringify(stdTx, null, 2), '\n');
+    const mainContent = document.getElementById('mainContent').innerHTML;
+    document.getElementById('mainContent').innerHTML = waitingHtml;
+    
+    let returnVal;
+    
+    const signMeta = await getSignMeta();
+
+    const stdTx = signTx(tx, signMeta, window.wallet);
+    console.log('signTx\n\n', JSON.stringify(stdTx, null, 2), '\n');
+    
+    const valid = verifyTx(stdTx, signMeta);
+    console.log('verifyTx\n\n', JSON.stringify(valid, null, 2), '\n');
+    
+    const broadcastTx = createBroadcastTx(stdTx, BROADCAST_MODE_BLOCK);
+    console.log('broadcastTx\n\n', JSON.stringify(broadcastTx, null, 2), '\n');     
+    
+    try{
+        const responseData = await postToServer("/txs", broadcastTx);        
+        await setBalance();
         
-        const valid = verifyTx(stdTx, signMeta);
-        console.log('verifyTx\n\n', JSON.stringify(valid, null, 2), '\n');
+        alert(`Transaction result: ${JSON.stringify(responseData)}`);
         
-        const broadcastTx = createBroadcastTx(stdTx, BROADCAST_MODE_BLOCK);
-        console.log('broadcastTx\n\n', JSON.stringify(broadcastTx, null, 2), '\n');     
-        
-        postToServer("/txs", broadcastTx).then(responseData => {
-            alert(`Transaction result: ${JSON.stringify(responseData)}`);
-        }).catch(error => {
-            alert(`call failed: ${JSON.stringify(error)}`);
-        });
-    });     
+        document.getElementById('mainContent').innerHTML = mainContent;
+    }
+    catch(error){
+        await setBalance();
+        alert(`call failed: ${JSON.stringify(error)}`);
+        document.getElementById('mainContent').innerHTML = mainContent;
+    } 
 }
 
 function getMicroMacroAmountString(microAmount, microDenom){
@@ -231,7 +240,10 @@ export async function finishSendTuckeratoms(){
         memo: 'TuckWallet',
     }       
     
-    submitTransaction(tx);
+    await submitTransaction(tx);
+
+    document.getElementById('amountToSend').max = window.balances[denom] / oneMillion;
+    
 }
 // delegate
 
@@ -410,7 +422,14 @@ export async function finishDelegateTuckeratoms(){
         }
     }
     
-    submitTransaction(tx);
+    await submitTransaction(tx);
+    
+    const [validators, validatorAddressToNameMap] = await getValidators();
+    const delegations = await getDelegations(validatorAddressToNameMap); 
+    
+    document.getElementById('source').innerHTML = `<option value="undelegated">Undelegated Tuckeratoms</option>${delegations}`;
+    updateMaxDelegationAmount();
+    
 }
 
 // withdraw rewards
@@ -470,8 +489,8 @@ export async function startWithdrawRewards(){
     const html = `
         <h2>Withdraw Staking Rewards</h2>
         
-        <h3>Pending Rewards<br>(Totaling ${totalRewards} Tuckeratoms):</h3>
-        ${pendingRewards}<br>
+        <h3>Pending Rewards<br>(Totaling <span id="totalRewards">${totalRewards}</span> Tuckeratoms):</h3>
+        <div id="pendingRewards" style="margin-bottom:20px;">${pendingRewards}<br></div>
         
         Fee (in Tuckeratoms): <input id="fee" type="number" style="width:100%;margin-bottom:20px;" min="0" step=".000001" value=".005">
         Gas: <input id="gas" type="number" style="width:100%;margin-bottom:20px;" min="0" step="1" value="50000">
@@ -511,6 +530,12 @@ export async function finishWithdrawRewards(){
         })
     }
     
+    const send = confirm('Withdrawing all staking rewards');
+    
+    if (!send){
+        return;
+    }    
+    
     const tx = {
         msg: msgs,
         fee: { 
@@ -520,7 +545,12 @@ export async function finishWithdrawRewards(){
         memo: "TuckWallet",
     };    
     
-    submitTransaction(tx);
+    await submitTransaction(tx);    
+
+    const [_, validatorAddressToNameMap] = await getValidators();
+    const [pendingRewards, totalRewards] = await getPendingRewards(validatorAddressToNameMap);        
+    document.getElementById('pendingRewards').innerHTML = pendingRewards;
+    document.getElementById('totalRewards').innerHTML = totalRewards;    
 }
 
 //unstake
@@ -604,5 +634,26 @@ export async function finishUnstakeTuckeratoms(){
         memo: "TuckWallet",
     };
     
-    submitTransaction(tx);
+    const send = confirm(`Unstaking ${amountToUnstakeInTuckeratoms} Tuckeratoms from ${validator}`);
+    
+    if (!send){
+        return;
+    }        
+    
+    await submitTransaction(tx);
+    
+    const [_, validatorAddressToNameMap] = await getValidators();
+    const delegationArray = await getDelegationArray();
+    
+    let options = '';
+    
+    for (const delegation of delegationArray){
+        const address = delegation['validator_address'];
+        const name = validatorAddressToNameMap[address];                
+        const tuckeratomBalance = delegation['balance'];
+        options += `<option value="${address}">${name} : ${tuckeratomBalance} Tuckeratoms Delegated</option>`
+    }        
+    
+    document.getElementById('validator').innerHTML = options;
+    
 }
