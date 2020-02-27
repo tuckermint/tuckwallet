@@ -1,9 +1,9 @@
 import { createWalletFromMnemonic, signTx, verifyTx, createBroadcastTx, BROADCAST_MODE_BLOCK } from '@tendermint/sig';
 
 // -- constants --
-const serverAddress = 'https://api.cosmos.network'
-const denom = 'uatom';
-const chainId = 'cosmoshub-3';
+const serverAddress = 'http://3.221.27.101:1317'
+const denom = 'utuckeratom';
+const chainId = 'tuckermint';
 const oneHundred = 100.0;
 const oneMillion = 1000000.0;
 
