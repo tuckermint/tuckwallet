@@ -1,7 +1,7 @@
 import { createWalletFromMnemonic, signTx, verifyTx, createBroadcastTx, BROADCAST_MODE_BLOCK } from '@tendermint/sig';
 
 // -- constants --
-const serverAddress = 'http://3.221.27.101:1317'
+const serverAddress = 'http://3.221.27.101'
 const denom = 'utuckeratom';
 const chainId = 'tuckermint';
 const oneHundred = 100.0;
@@ -31,11 +31,15 @@ async function postToServer(path, payload){
 async function getSignMeta(){
     const data = await fetchFromServer(`/auth/accounts/${window.wallet.address}`);
     
-    return {
+    const signMeta = {
         account_number: data['result']['value']['account_number'],
         chain_id:       chainId,
         sequence:       data['result']['value']['sequence'],
     }
+    
+    console.log('signMeta\n\n', JSON.stringify(signMeta, null, 2), '\n');
+    
+    return signMeta;
 }
 
 async function submitTransaction(tx){
@@ -237,7 +241,7 @@ export async function finishSendTuckeratoms(){
             amount: [{ denom: denom, amount: String(feeInMicroTuckeratoms) }],
             gas:    String(gas)
         },
-        memo: 'TuckWallet',
+        memo: 'TuckWallet'        
     }       
     
     await submitTransaction(tx);
