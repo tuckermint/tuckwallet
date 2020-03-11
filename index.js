@@ -1,4 +1,4 @@
-import { createWalletFromMnemonic, signTx, verifyTx, createBroadcastTx, BROADCAST_MODE_BLOCK } from '@tendermint/sig';
+import { createWalletFromMnemonic, createBroadcastTx, BROADCAST_MODE_BLOCK } from '@tendermint/sig';
 
 // -- constants --
 const serverAddress = 'http://3.221.27.101'
@@ -28,18 +28,18 @@ async function postToServer(path, payload){
   return data;
 }
 
-async function getSignMeta(){
+async function getTxContext(){
     const data = await fetchFromServer(`/auth/accounts/${window.wallet.address}`);
     
-    const signMeta = {
-        account_number: data['result']['value']['account_number'],
-        chain_id:       chainId,
-        sequence:       data['result']['value']['sequence'],
-    }
+    const txContext = {
+        chainId: chainId,
+        accountNumber: data['result']['value']['account_number'],
+        sequence: data['result']['value']['sequence']
+    };    
     
-    console.log('signMeta\n\n', JSON.stringify(signMeta, null, 2), '\n');
+    console.log('txContext\n\n', JSON.stringify(txContext, null, 2), '\n');
     
-    return signMeta;
+    return txContext;
 }
 
 async function submitTransaction(tx){
@@ -50,15 +50,18 @@ async function submitTransaction(tx){
     
     let returnVal;
     
-    const signMeta = await getSignMeta();
+    const txContext = await getTxContext();
+    
+    const wrappedTx =  {
+      "type": "cosmos-sdk/StdTx",
+      "value": tx
+    };    
+    
+    const signedTx = await sign(wrappedTx, txContext);
 
-    const stdTx = signTx(tx, signMeta, window.wallet);
-    console.log('signTx\n\n', JSON.stringify(stdTx, null, 2), '\n');
+    console.log('signedTx\n\n', JSON.stringify(signedTx, null, 2), '\n');
     
-    const valid = verifyTx(stdTx, signMeta);
-    console.log('verifyTx\n\n', JSON.stringify(valid, null, 2), '\n');
-    
-    const broadcastTx = createBroadcastTx(stdTx, BROADCAST_MODE_BLOCK);
+    const broadcastTx = createBroadcastTx(signedTx['value'], BROADCAST_MODE_BLOCK);
     console.log('broadcastTx\n\n', JSON.stringify(broadcastTx, null, 2), '\n');     
     
     try{
@@ -664,59 +667,8 @@ export async function finishUnstakeTuckeratoms(){
 //-------------------------------------------------------------------------------------------------------------
 // Transaction signing code from https://github.com/cybercongress/cyb-snap/blob/master/index.js
 
-export async function getSignedTestTx(){
-    const testTx =  {
-      "type": "cosmos-sdk/StdTx",
-      "value": {
-        "msg": [
-          {
-            "type": "cosmos-sdk/MsgSend",
-            "value": {
-              "from_address": "cosmos18yk6fxjd2sgds5qk6zkhwjfdafxs8z535qyht9",
-              "to_address": "cosmos12ff2ugqyj74cqyzzf8mjd332fjj0kwrwarjes9",
-              "amount": [
-                {
-                  "denom": "utuckeratom",
-                  "amount": "1000000"
-                }
-              ]
-            }
-          }
-        ],
-        "fee": {
-          "amount": [
-            {
-              "denom": "utuckeratom",
-              "amount": "5000"
-            }
-          ],
-          "gas": "200000"
-        },
-        "memo": "TuckWallet"
-      }
-    };
-    
-    const txContext = {
-        chainId: "tuckermint",
-        accountNumber: 517,
-        sequence: 2
-    };
-    
-    const signedTx = await sign(testTx, txContext);
-    console.log(signedTx);
-    return signedTx;
-}
-
 const Sha256 = require('sha256');
 const Secp256k1 = require('secp256k1');
-
-function hexToBytes(hex) {
-  const bytes = [];
-  for (let c = 0; c < hex.length; c += 2) {
-      bytes.push(parseInt(hex.substr(c, 2), 16));
-  }
-  return bytes;
-}
 
 async function sign(unsignedTx, txContext) {
   const bytesToSign = getBytesToSign(unsignedTx, txContext);
