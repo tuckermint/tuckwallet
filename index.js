@@ -170,7 +170,7 @@ export function startSendTuckeratoms(){
         Receiving Address: <input id="receivingAddress" style="width:100%;margin-bottom:20px;">
         Amount to Send (in Tuckeratoms): <input id="amountToSend" type="number" style="width:100%;margin-bottom:20px;" min=".000001" max="${currentBalanceInTuckeratoms}" step=".000001">
         Fee (in Tuckeratoms): <input id="fee" type="number" style="width:100%;margin-bottom:20px;" min="0" step=".000001" value=".005">
-        Gas: <input id="gas" type="number" style="width:100%;margin-bottom:20px;" min="0" step="1" value="50000">
+        Gas: <input id="gas" type="number" style="width:100%;margin-bottom:20px;" min="0" step="1" value="1000000">
         
         <button onclick="tuckwallet.finishSendTuckeratoms()">Send Tuckeratoms</button>
     `;
@@ -348,7 +348,7 @@ export async function startDelegateTuckeratoms(){
         Source of Tuckeratoms:  <select onchange="tuckwallet.updateMaxDelegationAmount()" id="source" style="width:100%;margin-bottom:20px;"><option value="undelegated">Undelegated Tuckeratoms</option>${delegations}</select>
         Amount to Delegate (in Tuckeratoms): <input id="amountToDelegate" type="number" style="width:100%;margin-bottom:20px;" min=".000001" max="${currentBalanceInTuckeratoms}" step=".000001">
         Fee (in Tuckeratoms): <input id="fee" type="number" style="width:100%;margin-bottom:20px;" min="0" step=".000001" value=".005">
-        Gas: <input id="gas" type="number" style="width:100%;margin-bottom:20px;" min="0" step="1" value="50000">
+        Gas: <input id="gas" type="number" style="width:100%;margin-bottom:20px;" min="0" step="1" value="1000000">
         
         <button onclick="tuckwallet.finishDelegateTuckeratoms()">Delegate Tuckeratoms</button>
     `;
@@ -500,7 +500,7 @@ export async function startWithdrawRewards(){
         <div id="pendingRewards" style="margin-bottom:20px;">${pendingRewards}<br></div>
         
         Fee (in Tuckeratoms): <input id="fee" type="number" style="width:100%;margin-bottom:20px;" min="0" step=".000001" value=".005">
-        Gas: <input id="gas" type="number" style="width:100%;margin-bottom:20px;" min="0" step="1" value="50000">
+        Gas: <input id="gas" type="number" style="width:100%;margin-bottom:20px;" min="0" step="1" value="1000000">
         
         <button onclick="tuckwallet.finishWithdrawRewards()">Withdraw All Rewards</button>
     `;
@@ -589,7 +589,7 @@ export async function startUnstakeTuckeratoms(){
         Validator: <select onchange="tuckwallet.updateAmountToUnstake()" id="validator" style="width:100%;margin-bottom:20px;">${options}</select>        
         Amount to Unstake (in Tuckeratoms): <input id="amountToUnstake" type="number" style="width:100%;margin-bottom:20px;" min=".000001" step=".000001">        
         Fee (in Tuckeratoms): <input id="fee" type="number" style="width:100%;margin-bottom:20px;" min="0" step=".000001" value=".005">
-        Gas: <input id="gas" type="number" style="width:100%;margin-bottom:20px;" min="0" step="1" value="50000">
+        Gas: <input id="gas" type="number" style="width:100%;margin-bottom:20px;" min="0" step="1" value="1000000">
         
         <button onclick="tuckwallet.finishUnstakeTuckeratoms()">Unstake Tuckeratoms</button>
     `;
