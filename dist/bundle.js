@@ -277,7 +277,7 @@ async function getDelegationArray() {
 
   for (const delegation of delegations) {
     const address = delegation['validator_address'];
-    const microTuckeratomBalance = delegation['balance'];
+    const microTuckeratomBalance = Number(delegation['balance']['amount']);
     const tuckeratomBalance = microTuckeratomBalance / oneMillion;
     delegationArray.push({
       'validator_address': address,
