@@ -3,7 +3,7 @@ import { createWalletFromMnemonic, createBroadcastTx, BROADCAST_MODE_BLOCK } fro
 // -- constants --
 const serverAddress = 'http://3.221.27.101'
 const denom = 'utuckeratom';
-const chainId = 'tuckermint';
+const chainId = 'tuckermint-1';
 const oneHundred = 100.0;
 const oneMillion = 1000000.0;
 
